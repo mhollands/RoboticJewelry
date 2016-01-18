@@ -38,14 +38,26 @@ RF24Mesh mesh(radio, network);
 #define RIGHT_CENTER 4
 #define RIGHT_TOP 5 
 
-#define nodeID CENTER
+//message types for nodeID identification
+#define DATA_FROM_CENTER 'a'
+#define DATA_FROM_LEFT_CENTER 'b'
+#define DATA_FROM_LEFT_TOP 'c'
+#define DATA_FROM_RIGHT_CENTER 'd'
+#define DATA_FROM_RIGHT_TOP 'e'
 
+//types of data to be sent
+#define IMU 'I'
+
+#define nodeID CENTER
+#define to_master 00
 
 uint32_t displayTimer = 0;
 
+//used for the outgoing data from this node
 struct payload_t {
   unsigned long ms;
   unsigned long data;
+  char data_type;
 };
 
 void setup() {
@@ -65,47 +77,25 @@ void loop() {
 
   mesh.update();
 
-  // Send to the master node every second
-  if (millis()-displayTimer >= 1000) {
-    displayTimer = millis();
-    uint32_t phrase = 0b00000000000000000000000011111111;
-    // Send an 'M' type message containing the current millis()
-    if (!mesh.write(&phrase, 'M', sizeof(phrase))) {
-
-      // If a write fails, check connectivity to the mesh network
-      if ( ! mesh.checkConnection() ) {
-        //refresh the network address
-        Serial.println("Renewing Address");
-        mesh.renewAddress();
-      } else {
-        Serial.println("Send fail, Test OK");
-      }
-    } else {
-      Serial.print("Send OK: "); Serial.println(displayTimer);
-    }
+  if (!mesh.checkConnection()){
+    mesh.renewAddress();
+    Serial.println("Renewing Address"); //for debugging
   }
-
-//  while (network.available()) {
-//    RF24NetworkHeader header;
-//    payload_t payload;
-//    network.read(header, &payload, sizeof(payload));
-//    Serial.print("Received packet #");
-//    Serial.print(payload.counter);
-//    Serial.print(" at ");
-//    Serial.println(payload.ms);
-//  }
 
   //receive commands from the master
   if (network.available()){
     RF24NetworkHeader header;
     network.peek(header);
-
+    
     uint32_t data;
     //test whether the nodes can receive a message that is not supposed to go to them
     switch(header.type){
-      case 'A': //network.read(header, &data, sizeof(data)); do we need to do this?
+      case 'A': network.read(header, &data, sizeof(data));
+                Serial.println("M_type --- from --- data"); //for debugging
+                Serial.print(header.type); Serial.print(" --- "); 
+                Serial.print(header.from_node); Serial.print(" --- ");
+                Serial.println(data); Serial.println("\n");
                 //do the protocal for message A type (walk for example)
-
       default:
       break;
     }
@@ -114,27 +104,18 @@ void loop() {
 
   //send data back to the master using fragmentation
   payload_t payload;
-  payload.data =  ;/*data from the sensor*/
+  payload.data = 0 ;/*data from the sensor*/
   payload.ms = millis(); //send the time of data packet
+  payload.data_type = IMU; 
 
-  /*
-   * For enabling sending paylaod up to 120 bytes we need to make changes in RF24Network_config.h
+  /* For enabling sending paylaod up to 120 bytes we need to make changes in RF24Network_config.h
    * so we can work with fragmentation (not done yet!!!)
    */
-
-  /* 
-   * if the header type under network layer does not support _from_node class, use the message
-   * type instead to differentiate the data from all the nodes
-   */
-  
-  RF24NetworkHeader header(00, 'S'); //header to send to master, message type may vary
+  RF24NetworkHeader header(to_master, DATA_FROM_CENTER);
   while(!network.write(header, &payload, sizeof(payload))){
-    //goes out when it send succesfully or when it run out of time???
+    if (!mesh.checkConnection()){
+      mesh.renewAddress();
+    }
   }
 }
-
-
-
-
-
 

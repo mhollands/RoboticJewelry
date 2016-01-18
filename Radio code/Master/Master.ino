@@ -32,9 +32,21 @@ uint32_t displayTimer = 0;
 #define RIGHT_CENTER 4
 #define RIGHT_TOP 5 
 
+//message types for nodeID identification
+#define DATA_FROM_CENTER 'a'
+#define DATA_FROM_LEFT_CENTER 'b'
+#define DATA_FROM_LEFT_TOP 'c'
+#define DATA_FROM_RIGHT_CENTER 'd'
+#define DATA_FROM_RIGHT_TOP 'e'
+
+//types of data to be sent
+#define IMU 'I'
+
+//used for incoming data form the nodes
 struct payload_t {
   unsigned long ms;
   unsigned long data;
+  char data_type;
 };
 
 void setup() {
@@ -85,16 +97,15 @@ void loop() {
   if (network.available()){
     RF24NetworkHeader header;
     network.peek(header);
-    
     payload_t payload;
     
     //nodes are OCT related, how to handle this in the case switch?
-    switch(header.from_node){
+    switch(header.type){
       //creat a routine to save or send data to computer
-      case mesh.getAddress(CENTER): network.read(header,&payload,sizeof(payload));
-                                    Serial.println(payload.data);
-                                    Serial.println(paylaod.ms);
-                                    Serial.println(header.type); // show message type
+      case DATA_FROM_CENTER: network.read(header,&payload,sizeof(payload));
+                             Serial.println(payload.data);
+                             Serial.println(payload.ms);
+                             Serial.println(header.type); // show message type
       default: network.read(header,0,0);
       break;
     }
