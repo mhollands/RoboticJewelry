@@ -58,11 +58,11 @@ void loop() {
   mesh.update();
 
   // Send to the master node every second
-  if (millis() - displayTimer >= 1000) {
+  //if (millis()-displayTimer >= 1000) {
     displayTimer = millis();
-
+    uint32_t phrase = 0b00000000000000000000000011111111;
     // Send an 'M' type message containing the current millis()
-    if (!mesh.write(&displayTimer, 'M', sizeof(displayTimer))) {
+    if (!mesh.write(&phrase, 'M', sizeof(phrase))) {
 
       // If a write fails, check connectivity to the mesh network
       if ( ! mesh.checkConnection() ) {
@@ -75,7 +75,7 @@ void loop() {
     } else {
       Serial.print("Send OK: "); Serial.println(displayTimer);
     }
-  }
+ // }
 
   while (network.available()) {
     RF24NetworkHeader header;

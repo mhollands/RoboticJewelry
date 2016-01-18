@@ -1,0 +1,2 @@
+15mA for nodes to be listening (RadioHead library)
+20mA for listening + processor

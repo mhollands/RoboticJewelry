@@ -30,14 +30,22 @@ RF24Mesh mesh(radio, network);
  * This will be stored in EEPROM on AVR devices, so remains persistent between further uploads, loss of power, etc.
  *
  **/
-#define nodeID 3
+ 
+//nodes definition
+#define CENTER 1
+#define LEFT_CENTER 2
+#define LEFT_TOP 3
+#define RIGHT_CENTER 4
+#define RIGHT_TOP 5 
+
+#define nodeID CENTER
 
 
 uint32_t displayTimer = 0;
 
 struct payload_t {
   unsigned long ms;
-  unsigned long counter;
+  unsigned long data;
 };
 
 void setup() {
@@ -58,11 +66,11 @@ void loop() {
   mesh.update();
 
   // Send to the master node every second
-  if (millis() - displayTimer >= 1000) {
+  if (millis()-displayTimer >= 1000) {
     displayTimer = millis();
-
+    uint32_t phrase = 0b00000000000000000000000011111111;
     // Send an 'M' type message containing the current millis()
-    if (!mesh.write(&displayTimer, 'M', sizeof(displayTimer))) {
+    if (!mesh.write(&phrase, 'M', sizeof(phrase))) {
 
       // If a write fails, check connectivity to the mesh network
       if ( ! mesh.checkConnection() ) {
@@ -77,14 +85,51 @@ void loop() {
     }
   }
 
-  while (network.available()) {
+//  while (network.available()) {
+//    RF24NetworkHeader header;
+//    payload_t payload;
+//    network.read(header, &payload, sizeof(payload));
+//    Serial.print("Received packet #");
+//    Serial.print(payload.counter);
+//    Serial.print(" at ");
+//    Serial.println(payload.ms);
+//  }
+
+  //receive commands from the master
+  if (network.available()){
     RF24NetworkHeader header;
-    payload_t payload;
-    network.read(header, &payload, sizeof(payload));
-    Serial.print("Received packet #");
-    Serial.print(payload.counter);
-    Serial.print(" at ");
-    Serial.println(payload.ms);
+    network.peek(header);
+
+    uint32_t data;
+    //test whether the nodes can receive a message that is not supposed to go to them
+    switch(header.type){
+      case 'A': //network.read(header, &data, sizeof(data)); do we need to do this?
+                //do the protocal for message A type (walk for example)
+
+      default:
+      break;
+    }
+  }
+
+
+  //send data back to the master using fragmentation
+  payload_t payload;
+  payload.data =  ;/*data from the sensor*/
+  payload.ms = millis(); //send the time of data packet
+
+  /*
+   * For enabling sending paylaod up to 120 bytes we need to make changes in RF24Network_config.h
+   * so we can work with fragmentation (not done yet!!!)
+   */
+
+  /* 
+   * if the header type under network layer does not support _from_node class, use the message
+   * type instead to differentiate the data from all the nodes
+   */
+  
+  RF24NetworkHeader header(00, 'S'); //header to send to master, message type may vary
+  while(!network.write(header, &payload, sizeof(payload))){
+    //goes out when it send succesfully or when it run out of time???
   }
 }
 
