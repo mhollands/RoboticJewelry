@@ -18,19 +18,22 @@
 //Include eeprom.h for AVR (Uno, Nano) etc. except ATTiny
 #include <EEPROM.h>
 
+//change this line
+//what now
+
 /***** Configure the chosen CE,CS pins *****/
 RF24 radio(9,10);
 RF24Network network(radio);
 RF24Mesh mesh(radio,network);
 
-uint32_t displayTimer = 0;
+//global variables
 
 //nodes definition
-#define CENTER 1
-#define LEFT_CENTER 2
-#define LEFT_TOP 3
-#define RIGHT_CENTER 4
-#define RIGHT_TOP 5 
+#define CENTER 01
+#define LEFT_CENTER 02
+#define LEFT_TOP 03
+#define RIGHT_CENTER 04
+#define RIGHT_TOP 05 
 
 //message types for nodeID identification
 #define DATA_FROM_CENTER 'a'
@@ -49,6 +52,14 @@ struct payload_t {
   char data_type;
 };
 
+//used for sending commands to the nodes
+struct command_t {
+  bool motorLeft_on;
+  bool motorRight_on;
+  int velocityLeft_motor;
+  int velocityRight_motor;
+};
+
 void setup() {
   Serial.begin(115200);
 
@@ -57,7 +68,7 @@ void setup() {
   Serial.println(mesh.getNodeID());
   // Connect to the mesh
   mesh.begin();
-
+  Serial.println("Initializing the master");
 }
 
 
@@ -70,45 +81,97 @@ void loop() {
   // be assigned to the sensor nodes
   mesh.DHCP();
 
-  //protocol to send data form the serial monitor
-  if (network.available()){
-    uint8_t m_type;
-    m_type = Serial.read();
-    
-    //use ASCII 65-127 (7 bits) to send the type in the header;  user-defined
-    uint8_t node;
-    uint32_t content; //maximum size-wise content
-    
-    /* case A: center goes forward for t seconds
-     * case B:
-     * case C:
-     * 
-     */
-    switch(m_type){
-      case 'A': node = CENTER;
-                content = 0b00000001;
-                mesh.write(&content, m_type, sizeof(content), node);
-      default:
-      break;
-    }
-  }
-
-  //protocol to collect data from nodes
-  if (network.available()){
-    RF24NetworkHeader header;
-    network.peek(header);
-    payload_t payload;
-    
-    //nodes are OCT related, how to handle this in the case switch?
-    switch(header.type){
-      //creat a routine to save or send data to computer
-      case DATA_FROM_CENTER: network.read(header,&payload,sizeof(payload));
-                             Serial.println(payload.data);
-                             Serial.println(payload.ms);
-                             Serial.println(header.type); // show message type
-      default: network.read(header,0,0);
-      break;
-    }
+  //protocol to send data form the serial monitor  
+  char m_type = 0;
+  while (Serial.available() > 0){
+   m_type = char(Serial.read());
+   Serial.println(m_type);
   }
   
+  //use ASCII 65-127 (7 bits) to send the type in the header;  user-defined
+  uint8_t node;
+  command_t content;
+  RF24NetworkHeader header;
+  switch(m_type){
+    case 'A': 
+  		//move these two lines to the setup or global scope
+  		//radio.setDataRate(RF24_250KBPS); //reduce the data rate to increase success
+  		//radio.setRetries(15,15); //biggest priority to send packages - takes more time
+  	  
+  		//Constructing the header
+  		header.to_node = mesh.getAddress(CENTER);       //destination 
+  		header.type = m_type;                           //type of message
+  	  
+  		Serial.println("Sending spin command to center...");       //debugging
+  		content.motorRight_on = true;
+  		content.motorLeft_on = false;
+  		content.velocityRight_motor = 1000;
+  		content.velocityLeft_motor = 0;
+  		network.write(header, &content, sizeof(content));
+  	  
+  		//debugging
+  		//Serial.println(mesh.addrList[0].nodeID);
+  		//Serial.println(mesh.addrList[0].address);
+  			  
+  	case 'S':
+  		header.to_node = mesh.getAddress(CENTER);       //destination 
+  		header.type = m_type;                           //type of message
+  		  
+  		Serial.println("Sending stop command to center...");       //debugging
+  		content.motorRight_on = false;
+  		content.motorLeft_on = false;
+  		content.velocityRight_motor = 0;
+  		content.velocityLeft_motor = 0;
+  		network.write(header, &content, sizeof(content));
+  			
+  	case 'F':
+  		header.to_node = mesh.getAddress(LEFT_CENTER);       //destination 
+  		header.type = m_type;                           //type of message
+  		 
+  		Serial.println("Sending spin command to left center...");       //debugging
+  		content.motorRight_on = true;
+  		content.motorLeft_on = false;
+  		content.velocityRight_motor = 1000;
+  		content.velocityLeft_motor = 0;
+  		network.write(header, &content, sizeof(content));
+  		
+  	case 'G':
+  		header.to_node = mesh.getAddress(LEFT_CENTER);       //destination 
+  		header.type = m_type;                           //type of message
+  		  
+  		Serial.println("Sending stop command to center...");       //debugging
+  		content.motorRight_on = false;
+  		content.motorLeft_on = false;
+  		content.velocityRight_motor = 0;
+  		content.velocityLeft_motor = 0;
+  		network.write(header, &content, sizeof(content));
+  		
+      default: 
+      break;
+  }
+  m_type = 0;
+
+  //protocol to collect data from nodes
+//  if (network.available()){
+//    RF24NetworkHeader header;
+//    network.peek(header);
+//    payload_t payload;
+//    
+//    //nodes are OCT related, how to handle this in the case switch?
+//    switch(header.type){
+//      //creat a routine to save or send data to computer
+//      case DATA_FROM_CENTER: network.read(header,&payload,sizeof(payload));
+//                             Serial.println("Getting data form the Center");
+//                             Serial.println(payload.data,HEX);
+//                             Serial.println(payload.ms);
+//                             Serial.println(payload.data_type);
+//                             Serial.println(char(header.type)); // show message type
+//                             delay(1000);
+//      default: network.read(header,0,0);
+//      break;
+//    }
+//  }
+  
 }
+
+

@@ -48,7 +48,7 @@ RF24Mesh mesh(radio, network);
 //types of data to be sent
 #define IMU 'I'
 
-#define nodeID CENTER
+#define nodeID 01
 #define TO_MASTER 00
 
 //used for the outgoing data from this node
@@ -58,7 +58,6 @@ struct payload_t {
   char data_type;
 };
 
-//used for the incoming command
 struct command_t {
   bool motorLeft_on;
   bool motorRight_on;
@@ -97,20 +96,20 @@ void loop() {
     RF24NetworkHeader header;
     network.peek(header);
     command_t data;
-    switch(char(header.type)){
-      case 'A': network.read(header, &data, sizeof(data));
-                Serial.println("Message_type --- from --- data"); //for debugging
-                Serial.print(char(header.type)); Serial.print("           --- "); 
-                Serial.print(header.from_node); Serial.print("  --- ");
-                Serial.print("r-motor: ");
-                Serial.print(data.motorRight_on);
-                Serial.print("   l-motor: ");
-                Serial.print(data.motorLeft_on);
-                Serial.print("  velocity-r: ");
-                Serial.print(data.velocityRight_motor);
-                Serial.print("  velocity-l: ");
-                Serial.print(data.velocityLeft_motor);
-                Serial.println("\n");
+    switch(header.type){
+      case 65: network.read(header, &data, sizeof(data));
+               Serial.println("Message_type --- from --- data"); //for debugging
+               Serial.print(char(header.type)); Serial.print("           --- "); 
+               Serial.print(header.from_node); Serial.print("  --- ");
+               Serial.print("r-motor: ");
+               Serial.print(data.motorRight_on);
+               Serial.print("   l-motor: ");
+               Serial.print(data.motorLeft_on);
+               Serial.print("  velocity-r: ");
+               Serial.print(data.velocityRight_motor);
+               Serial.print("  velocity-l: ");
+               Serial.print(data.velocityLeft_motor);
+               Serial.println("\n");
                 
       default:
       break;
