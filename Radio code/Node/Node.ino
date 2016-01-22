@@ -38,6 +38,12 @@ RF24Mesh mesh(radio, network);
 #define RIGHT_CENTER 4
 #define RIGHT_TOP 5 
 
+//Motors pin definitions
+#define PIN_LEFT_MOTOR_DIR 4
+#define PIN_LEFT_MOTOR_VEL 5
+#define PIN_RIGHT_MOTOR_DIR 6
+#define PIN_RIGHT_MOTOR_VEL 7
+
 //message types for nodeID identification
 #define DATA_FROM_CENTER 'a'
 #define DATA_FROM_LEFT_CENTER 'b'
@@ -71,6 +77,20 @@ void setup() {
   mesh.setNodeID(nodeID);
   Serial.println(F("Connecting to the mesh..."));
   mesh.begin();
+  
+  radio.setRetries(15,15);
+  
+  //Pins for the control of the motor
+  pinMode(PIN_LEFT_MOTOR_DIR, OUTPUT);
+  pinMode(PIN_LEFT_MOTOR_VEL, OUTPUT);
+  pinMode(PIN_RIGHT_MOTOR_DIR, OUTPUT);
+  pinMode(PIN_RIGHT_MOTOR_VEL, OUTPUT);
+  
+  //Set initial direction
+  analogWrite(PIN_LEFT_MOTOR_DIR, 0);
+  analogWrite(PIN_RIGHT_MOTOR_DIR, 0);
+  
+  
 }
 
 void loop() {
@@ -99,19 +119,28 @@ void loop() {
     command_t data;
     switch(char(header.type)){
       case 'A': network.read(header, &data, sizeof(data));
-                Serial.println("Message_type --- from --- data"); //for debugging
-                Serial.print(char(header.type)); Serial.print("           --- "); 
-                Serial.print(header.from_node); Serial.print("  --- ");
-                Serial.print("r-motor: ");
-                Serial.print(data.motorRight_on);
-                Serial.print("   l-motor: ");
-                Serial.print(data.motorLeft_on);
-                Serial.print("  velocity-r: ");
-                Serial.print(data.velocityRight_motor);
-                Serial.print("  velocity-l: ");
-                Serial.print(data.velocityLeft_motor);
-                Serial.println("\n");
-                
+				analogWrite(PIN_LEFT_MOTOR_VEL, data.velocityLeft_motor);
+                Serial.println("Received A");
+				
+				//code for debbuging
+				// Serial.println("Message_type --- from --- data"); //for debugging
+                // Serial.print(char(header.type)); Serial.print("           --- "); 
+                // Serial.print(header.from_node); Serial.print("  --- ");
+                // Serial.print("r-motor: ");
+                // Serial.print(data.motorRight_on);
+                // Serial.print("   l-motor: ");
+                // Serial.print(data.motorLeft_on);
+                // Serial.print("  velocity-r: ");
+                // Serial.print(data.velocityRight_motor);
+                // Serial.print("  velocity-l: ");
+                // Serial.print(data.velocityLeft_motor);
+                // Serial.println("\n");
+                break;
+		
+	  case 'S': network.read(header, &data, sizeof(data));
+				analogWrite(PIN_LEFT_MOTOR_VEL, data.velocityLeft_motor);
+				Serial.println("Received S");
+                break;
       default:
       break;
     }

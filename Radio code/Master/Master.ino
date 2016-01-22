@@ -18,15 +18,17 @@
 //Include eeprom.h for AVR (Uno, Nano) etc. except ATTiny
 #include <EEPROM.h>
 
-//change this line
-//what now
 
 /***** Configure the chosen CE,CS pins *****/
 RF24 radio(9,10);
 RF24Network network(radio);
 RF24Mesh mesh(radio,network);
 
+/***** Set some configurations of the network *****/
+
+
 //global variables
+char m_type = 0;
 
 //nodes definition
 #define CENTER 01
@@ -69,6 +71,8 @@ void setup() {
   // Connect to the mesh
   mesh.begin();
   Serial.println("Initializing the master");
+  
+  radio.setRetries(15,15);
 }
 
 
@@ -82,11 +86,8 @@ void loop() {
   mesh.DHCP();
 
   //protocol to send data form the serial monitor  
-  char m_type = 0;
-  while (Serial.available() > 0){
-   m_type = char(Serial.read());
-   Serial.println(m_type);
-  }
+  // This line gets everything that is on the buffer, thus it is possible to send a phrase and process it all
+  m_type = char(Serial.read());
   
   //use ASCII 65-127 (7 bits) to send the type in the header;  user-defined
   uint8_t node;
@@ -94,10 +95,6 @@ void loop() {
   RF24NetworkHeader header;
   switch(m_type){
     case 'A': 
-  		//move these two lines to the setup or global scope
-  		//radio.setDataRate(RF24_250KBPS); //reduce the data rate to increase success
-  		//radio.setRetries(15,15); //biggest priority to send packages - takes more time
-  	  
   		//Constructing the header
   		header.to_node = mesh.getAddress(CENTER);       //destination 
   		header.type = m_type;                           //type of message
@@ -105,10 +102,11 @@ void loop() {
   		Serial.println("Sending spin command to center...");       //debugging
   		content.motorRight_on = true;
   		content.motorLeft_on = false;
-  		content.velocityRight_motor = 1000;
-  		content.velocityLeft_motor = 0;
+  		content.velocityRight_motor = 0;
+  		content.velocityLeft_motor = 100;
   		network.write(header, &content, sizeof(content));
-  	  
+		m_type = 0;
+		break;
   		//debugging
   		//Serial.println(mesh.addrList[0].nodeID);
   		//Serial.println(mesh.addrList[0].address);
@@ -123,7 +121,9 @@ void loop() {
   		content.velocityRight_motor = 0;
   		content.velocityLeft_motor = 0;
   		network.write(header, &content, sizeof(content));
-  			
+  		m_type = 0;
+		break;
+		
   	case 'F':
   		header.to_node = mesh.getAddress(LEFT_CENTER);       //destination 
   		header.type = m_type;                           //type of message
@@ -131,25 +131,28 @@ void loop() {
   		Serial.println("Sending spin command to left center...");       //debugging
   		content.motorRight_on = true;
   		content.motorLeft_on = false;
-  		content.velocityRight_motor = 1000;
-  		content.velocityLeft_motor = 0;
+  		content.velocityRight_motor = 0;
+  		content.velocityLeft_motor = 100;
   		network.write(header, &content, sizeof(content));
-  		
+  		m_type = 0;
+		break;
+		
   	case 'G':
   		header.to_node = mesh.getAddress(LEFT_CENTER);       //destination 
   		header.type = m_type;                           //type of message
   		  
-  		Serial.println("Sending stop command to center...");       //debugging
+  		Serial.println("Sending stop command to left center...");       //debugging
   		content.motorRight_on = false;
   		content.motorLeft_on = false;
   		content.velocityRight_motor = 0;
   		content.velocityLeft_motor = 0;
   		network.write(header, &content, sizeof(content));
-  		
-      default: 
-      break;
+  		m_type = 0;
+		break;
+		
+    default: 
+		break;
   }
-  m_type = 0;
 
   //protocol to collect data from nodes
 //  if (network.available()){
