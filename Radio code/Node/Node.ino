@@ -39,10 +39,20 @@ RF24Mesh mesh(radio, network);
 #define RIGHT_TOP 5 
 
 //Motors pin definitions
-#define PIN_LEFT_MOTOR_DIR 4
-#define PIN_LEFT_MOTOR_VEL 5
-#define PIN_RIGHT_MOTOR_DIR 6
-#define PIN_RIGHT_MOTOR_VEL 7
+#define PIN_LEFT_MOTOR_DIR 5
+#define PIN_LEFT_MOTOR_VEL 4
+#define PIN_RIGHT_MOTOR_DIR 7
+#define PIN_RIGHT_MOTOR_VEL 6
+
+//Configure manually the motor direction after assembly
+#define LEFT_MOTOR_FWD HIGH
+#define RIGHT_MOTOR_FWD HIGH
+#define LEFT_MOTOR_BCK LOW
+#define RIGHT_MOTOR_BCK LOW
+
+//LEDs pin definition
+#define BLUE_LED A2
+#define RED_LED A3
 
 //message types for nodeID identification
 #define DATA_FROM_CENTER 'a'
@@ -87,9 +97,20 @@ void setup() {
   pinMode(PIN_RIGHT_MOTOR_VEL, OUTPUT);
   
   //Set initial direction
-  analogWrite(PIN_LEFT_MOTOR_DIR, 0);
-  analogWrite(PIN_RIGHT_MOTOR_DIR, 0);
-  
+  digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_FWD);
+  digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_FWD);
+
+  //Settign the LEDs as output
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT); 
+
+  //showing that the program went ON
+  analogWrite(BLUE_LED,255);
+  delay(500);
+  analogWrite(BLUE_LED,0);
+  analogWrite(RED_LED,255);
+  delay(500);
+  analogWrite(RED_LED,0);
   
 }
 
@@ -118,9 +139,13 @@ void loop() {
     network.peek(header);
     command_t data;
     switch(char(header.type)){
-      case 'A': network.read(header, &data, sizeof(data));
-				analogWrite(PIN_LEFT_MOTOR_VEL, data.velocityLeft_motor);
-                Serial.println("Received A");
+      case 'A': 
+        network.read(header, &data, sizeof(data));
+				analogWrite(PIN_LEFT_MOTOR_VEL, 100);
+        //Serial.println("Received A");
+        analogWrite(BLUE_LED,255);
+        delay(500);
+        analogWrite(BLUE_LED,0);
 				
 				//code for debbuging
 				// Serial.println("Message_type --- from --- data"); //for debugging
@@ -135,14 +160,43 @@ void loop() {
                 // Serial.print("  velocity-l: ");
                 // Serial.print(data.velocityLeft_motor);
                 // Serial.println("\n");
-                break;
+        break;
 		
-	  case 'S': network.read(header, &data, sizeof(data));
-				analogWrite(PIN_LEFT_MOTOR_VEL, data.velocityLeft_motor);
-				Serial.println("Received S");
-                break;
-      default:
-      break;
+	  case 'S': 
+	      network.read(header, &data, sizeof(data));
+				analogWrite(PIN_LEFT_MOTOR_VEL, 0);
+        analogWrite(PIN_RIGHT_MOTOR_VEL, 0);
+				//Serial.println("Received S");
+        analogWrite(RED_LED,255);
+        delay(500);
+        analogWrite(RED_LED,0);
+        break;
+
+    case 'D': 
+        network.read(header, &data, sizeof(data));
+        analogWrite(PIN_RIGHT_MOTOR_VEL, 100);
+        //Serial.println("Received A");
+        analogWrite(BLUE_LED,255);
+        delay(500);
+        analogWrite(BLUE_LED,0);
+        break;
+
+    case 'W': 
+        network.read(header, &data, sizeof(data));
+        analogWrite(PIN_LEFT_MOTOR_VEL, 100);
+        analogWrite(PIN_RIGHT_MOTOR_VEL, 100);
+        //Serial.println("Received S");
+        analogWrite(RED_LED,255);
+        delay(500);
+        analogWrite(RED_LED,0);
+        analogWrite(BLUE_LED,255);
+        delay(500);
+        analogWrite(BLUE_LED,0);
+        break;
+        break;
+        
+    default:
+    break;
     }
   }
   

@@ -11,7 +11,7 @@
   */
   
   
-#include "RF24Network.h"
+#include <RF24Network.h>
 #include "RF24.h"
 #include "RF24Mesh.h"
 #include <SPI.h>
@@ -104,7 +104,7 @@ void loop() {
   		content.motorLeft_on = false;
   		content.velocityRight_motor = 0;
   		content.velocityLeft_motor = 100;
-  		network.write(header, &content, sizeof(content));
+  		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
 		m_type = 0;
 		break;
   		//debugging
@@ -120,9 +120,35 @@ void loop() {
   		content.motorLeft_on = false;
   		content.velocityRight_motor = 0;
   		content.velocityLeft_motor = 0;
-  		network.write(header, &content, sizeof(content));
+  		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
   		m_type = 0;
 		break;
+
+    case 'D':
+      header.to_node = mesh.getAddress(CENTER);       //destination 
+      header.type = m_type;                           //type of message
+        
+      Serial.println("Sending spin command to center...");       //debugging
+      content.motorRight_on = false;
+      content.motorLeft_on = false;
+      content.velocityRight_motor = 0;
+      content.velocityLeft_motor = 0;
+      while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
+      m_type = 0;
+    break;
+
+    case 'W':
+      header.to_node = mesh.getAddress(CENTER);       //destination 
+      header.type = m_type;                           //type of message
+        
+      Serial.println("Sending go command to center...");       //debugging
+      content.motorRight_on = false;
+      content.motorLeft_on = false;
+      content.velocityRight_motor = 0;
+      content.velocityLeft_motor = 0;
+      while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
+      m_type = 0;
+    break;
 		
   	case 'F':
   		header.to_node = mesh.getAddress(LEFT_CENTER);       //destination 
