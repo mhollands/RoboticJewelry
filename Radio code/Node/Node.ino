@@ -30,6 +30,9 @@ RF24Mesh mesh(radio, network);
  * This will be stored in EEPROM on AVR devices, so remains persistent between further uploads, loss of power, etc.
  *
  **/
+
+#define PWR 255
+
  
 //nodes definition
 #define CENTER 1
@@ -39,15 +42,15 @@ RF24Mesh mesh(radio, network);
 #define RIGHT_TOP 5 
 
 //Motors pin definitions
-#define PIN_LEFT_MOTOR_DIR 5
-#define PIN_LEFT_MOTOR_VEL 4
+#define PIN_LEFT_MOTOR_DIR 4
+#define PIN_LEFT_MOTOR_VEL 5
 #define PIN_RIGHT_MOTOR_DIR 7
 #define PIN_RIGHT_MOTOR_VEL 6
 
 //Configure manually the motor direction after assembly
-#define LEFT_MOTOR_FWD HIGH
+#define LEFT_MOTOR_FWD LOW
 #define RIGHT_MOTOR_FWD HIGH
-#define LEFT_MOTOR_BCK LOW
+#define LEFT_MOTOR_BCK HIGH
 #define RIGHT_MOTOR_BCK LOW
 
 //LEDs pin definition
@@ -118,7 +121,6 @@ void loop() {
   mesh.update();
 
 // Debugging of the network
-
 //  Serial.print("This node address: ");
 //  Serial.println(mesh.getAddress(nodeID));
 //  Serial.print("This node ID: ");
@@ -139,27 +141,30 @@ void loop() {
     network.peek(header);
     command_t data;
     switch(char(header.type)){
-      case 'A': 
+      case 'D': 
         network.read(header, &data, sizeof(data));
-				analogWrite(PIN_LEFT_MOTOR_VEL, 100);
+        digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_FWD);
+				analogWrite(PIN_LEFT_MOTOR_VEL, PWR);
+        digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_BCK);
+        analogWrite(PIN_RIGHT_MOTOR_VEL, PWR);
         //Serial.println("Received A");
         analogWrite(BLUE_LED,255);
         delay(500);
         analogWrite(BLUE_LED,0);
 				
-				//code for debbuging
+				//code for debbuging incoming message
 				// Serial.println("Message_type --- from --- data"); //for debugging
-                // Serial.print(char(header.type)); Serial.print("           --- "); 
-                // Serial.print(header.from_node); Serial.print("  --- ");
-                // Serial.print("r-motor: ");
-                // Serial.print(data.motorRight_on);
-                // Serial.print("   l-motor: ");
-                // Serial.print(data.motorLeft_on);
-                // Serial.print("  velocity-r: ");
-                // Serial.print(data.velocityRight_motor);
-                // Serial.print("  velocity-l: ");
-                // Serial.print(data.velocityLeft_motor);
-                // Serial.println("\n");
+        // Serial.print(char(header.type)); Serial.print("           --- "); 
+        // Serial.print(header.from_node); Serial.print("  --- ");
+        // Serial.print("r-motor: ");
+        // Serial.print(data.motorRight_on);
+        // Serial.print("   l-motor: ");
+        // Serial.print(data.motorLeft_on);
+        // Serial.print("  velocity-r: ");
+        // Serial.print(data.velocityRight_motor);
+        // Serial.print("  velocity-l: ");
+        // Serial.print(data.velocityLeft_motor);
+        // Serial.println("\n");
         break;
 		
 	  case 'S': 
@@ -172,9 +177,12 @@ void loop() {
         analogWrite(RED_LED,0);
         break;
 
-    case 'D': 
+    case 'A': 
         network.read(header, &data, sizeof(data));
-        analogWrite(PIN_RIGHT_MOTOR_VEL, 100);
+        digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_FWD);
+        analogWrite(PIN_RIGHT_MOTOR_VEL, PWR);
+        digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_BCK);
+        analogWrite(PIN_LEFT_MOTOR_VEL, PWR);
         //Serial.println("Received A");
         analogWrite(BLUE_LED,255);
         delay(500);
@@ -183,8 +191,10 @@ void loop() {
 
     case 'W': 
         network.read(header, &data, sizeof(data));
-        analogWrite(PIN_LEFT_MOTOR_VEL, 100);
-        analogWrite(PIN_RIGHT_MOTOR_VEL, 100);
+        digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_FWD);
+        digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_FWD);
+        analogWrite(PIN_LEFT_MOTOR_VEL, PWR);
+        analogWrite(PIN_RIGHT_MOTOR_VEL, PWR);
         //Serial.println("Received S");
         analogWrite(RED_LED,255);
         delay(500);
@@ -193,6 +203,20 @@ void loop() {
         delay(500);
         analogWrite(BLUE_LED,0);
         break;
+
+    case 'X': 
+        network.read(header, &data, sizeof(data));
+        digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_BCK);
+        digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_BCK);
+        analogWrite(PIN_LEFT_MOTOR_VEL, PWR);
+        analogWrite(PIN_RIGHT_MOTOR_VEL, PWR);
+        //Serial.println("Received S");
+        analogWrite(RED_LED,255);
+        delay(500);
+        analogWrite(RED_LED,0);
+        analogWrite(BLUE_LED,255);
+        delay(500);
+        analogWrite(BLUE_LED,0);
         break;
         
     default:

@@ -149,6 +149,19 @@ void loop() {
       while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
       m_type = 0;
     break;
+
+    case 'X':
+      header.to_node = mesh.getAddress(CENTER);       //destination 
+      header.type = m_type;                           //type of message
+        
+      Serial.println("Sending go back command to center...");       //debugging
+      content.motorRight_on = false;
+      content.motorLeft_on = false;
+      content.velocityRight_motor = 0;
+      content.velocityLeft_motor = 0;
+      while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
+      m_type = 0;
+    break;
 		
   	case 'F':
   		header.to_node = mesh.getAddress(LEFT_CENTER);       //destination 
