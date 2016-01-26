@@ -32,7 +32,7 @@ RF24Mesh mesh(radio, network);
  **/
 
 #define PWR 255
-
+#define STOP 0
  
 //nodes definition
 #define CENTER 1
@@ -42,16 +42,16 @@ RF24Mesh mesh(radio, network);
 #define RIGHT_TOP 5 
 
 //Motors pin definitions
-#define PIN_LEFT_MOTOR_DIR 4
-#define PIN_LEFT_MOTOR_VEL 5
-#define PIN_RIGHT_MOTOR_DIR 7
-#define PIN_RIGHT_MOTOR_VEL 6
+#define PIN_FRONT_MOTOR_DIR 4
+#define PIN_FRONT_MOTOR_VEL 5
+#define PIN_BACK_MOTOR_DIR 7
+#define PIN_BACK_MOTOR_VEL 6
 
 //Configure manually the motor direction after assembly
-#define LEFT_MOTOR_FWD LOW
-#define RIGHT_MOTOR_FWD HIGH
-#define LEFT_MOTOR_BCK HIGH
-#define RIGHT_MOTOR_BCK LOW
+#define FRONT_MOTOR_FWD LOW
+#define BACK_MOTOR_FWD HIGH
+#define FRONT_MOTOR_BCK HIGH
+#define BACK_MOTOR_BCK LOW
 
 //LEDs pin definition
 #define BLUE_LED A2
@@ -79,10 +79,8 @@ struct payload_t {
 
 //used for the incoming command
 struct command_t {
-  bool motorLeft_on;
-  bool motorRight_on;
-  int velocityLeft_motor;
-  int velocityRight_motor;
+  bool motorEnable;
+  int motorVelocity;
 };
 
 void setup() {
@@ -94,14 +92,14 @@ void setup() {
   radio.setRetries(15,15);
   
   //Pins for the control of the motor
-  pinMode(PIN_LEFT_MOTOR_DIR, OUTPUT);
-  pinMode(PIN_LEFT_MOTOR_VEL, OUTPUT);
-  pinMode(PIN_RIGHT_MOTOR_DIR, OUTPUT);
-  pinMode(PIN_RIGHT_MOTOR_VEL, OUTPUT);
+  pinMode(PIN_FRONT_MOTOR_DIR, OUTPUT);
+  pinMode(PIN_FRONT_MOTOR_VEL, OUTPUT);
+  pinMode(PIN_BACK_MOTOR_DIR, OUTPUT);
+  pinMode(PIN_BACK_MOTOR_VEL, OUTPUT);
   
   //Set initial direction
-  digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_FWD);
-  digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_FWD);
+  digitalWrite(PIN_FRONT_MOTOR_DIR, FRONT_MOTOR_FWD);
+  digitalWrite(PIN_BACK_MOTOR_DIR, BACK_MOTOR_FWD);
 
   //Settign the LEDs as output
   pinMode(BLUE_LED, OUTPUT);
@@ -115,6 +113,17 @@ void setup() {
   delay(500);
   analogWrite(RED_LED,0);
   
+}
+
+void actuateMotor(bool actuate, int velocity) {
+  if (actuate) {
+	  analogWrite(PIN_BACK_MOTOR_VEL, velocity);
+	  analogWrite(PIN_FRONT_MOTOR_VEL, velocity);
+  }
+  else {
+	  analogWrite(PIN_BACK_MOTOR_VEL, STOP);
+	  analogWrite(PIN_FRONT_MOTOR_VEL, STOP);
+  }
 }
 
 void loop() {
@@ -143,11 +152,9 @@ void loop() {
     switch(char(header.type)){
       case 'D': 
         network.read(header, &data, sizeof(data));
-        digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_FWD);
-				analogWrite(PIN_LEFT_MOTOR_VEL, PWR);
-        digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_BCK);
-        analogWrite(PIN_RIGHT_MOTOR_VEL, PWR);
-        //Serial.println("Received A");
+        digitalWrite(PIN_FRONT_MOTOR_DIR, FRONT_MOTOR_FWD);
+        digitalWrite(PIN_BACK_MOTOR_DIR, BACK_MOTOR_BCK);
+		    actuateMotor(data.motorEnable, data.motorVelocity);
         analogWrite(BLUE_LED,255);
         delay(500);
         analogWrite(BLUE_LED,0);
@@ -169,9 +176,8 @@ void loop() {
 		
 	  case 'S': 
 	      network.read(header, &data, sizeof(data));
-				analogWrite(PIN_LEFT_MOTOR_VEL, 0);
-        analogWrite(PIN_RIGHT_MOTOR_VEL, 0);
-				//Serial.println("Received S");
+		    analogWrite(PIN_FRONT_MOTOR_VEL, 0);
+        analogWrite(PIN_BACK_MOTOR_VEL, 0);
         analogWrite(RED_LED,255);
         delay(500);
         analogWrite(RED_LED,0);
@@ -179,10 +185,9 @@ void loop() {
 
     case 'A': 
         network.read(header, &data, sizeof(data));
-        digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_FWD);
-        analogWrite(PIN_RIGHT_MOTOR_VEL, PWR);
-        digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_BCK);
-        analogWrite(PIN_LEFT_MOTOR_VEL, PWR);
+        digitalWrite(PIN_BACK_MOTOR_DIR, BACK_MOTOR_FWD);
+        digitalWrite(PIN_FRONT_MOTOR_DIR, FRONT_MOTOR_BCK);
+		    actuateMotor(data.motorEnable, data.motorVelocity);
         //Serial.println("Received A");
         analogWrite(BLUE_LED,255);
         delay(500);
@@ -191,11 +196,9 @@ void loop() {
 
     case 'W': 
         network.read(header, &data, sizeof(data));
-        digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_FWD);
-        digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_FWD);
-        analogWrite(PIN_LEFT_MOTOR_VEL, PWR);
-        analogWrite(PIN_RIGHT_MOTOR_VEL, PWR);
-        //Serial.println("Received S");
+        digitalWrite(PIN_FRONT_MOTOR_DIR, FRONT_MOTOR_FWD);
+        digitalWrite(PIN_BACK_MOTOR_DIR, BACK_MOTOR_FWD);
+		    actuateMotor(data.motorEnable, data.motorVelocity);
         analogWrite(RED_LED,255);
         delay(500);
         analogWrite(RED_LED,0);
@@ -206,11 +209,9 @@ void loop() {
 
     case 'X': 
         network.read(header, &data, sizeof(data));
-        digitalWrite(PIN_LEFT_MOTOR_DIR, LEFT_MOTOR_BCK);
-        digitalWrite(PIN_RIGHT_MOTOR_DIR, RIGHT_MOTOR_BCK);
-        analogWrite(PIN_LEFT_MOTOR_VEL, PWR);
-        analogWrite(PIN_RIGHT_MOTOR_VEL, PWR);
-        //Serial.println("Received S");
+        digitalWrite(PIN_FRONT_MOTOR_DIR, FRONT_MOTOR_BCK);
+        digitalWrite(PIN_BACK_MOTOR_DIR, BACK_MOTOR_BCK);
+		    actuateMotor(data.motorEnable, data.motorVelocity);
         analogWrite(RED_LED,255);
         delay(500);
         analogWrite(RED_LED,0);

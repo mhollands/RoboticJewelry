@@ -24,11 +24,24 @@ RF24 radio(9,10);
 RF24Network network(radio);
 RF24Mesh mesh(radio,network);
 
-/***** Set some configurations of the network *****/
+//used for incoming data form the nodes
+struct payload_t {
+  unsigned long ms;
+  unsigned long data;
+  char data_type;
+};
 
+//used for sending commands to the nodes
+struct command_t {
+  bool motorEnable;
+  int motorVelocity;
+};
 
 //global variables
 char m_type = 0;
+int velocity = 200;
+command_t content;
+RF24NetworkHeader header;
 
 //nodes definition
 #define CENTER 01
@@ -47,21 +60,6 @@ char m_type = 0;
 //types of data to be sent
 #define IMU 'I'
 
-//used for incoming data form the nodes
-struct payload_t {
-  unsigned long ms;
-  unsigned long data;
-  char data_type;
-};
-
-//used for sending commands to the nodes
-struct command_t {
-  bool motorLeft_on;
-  bool motorRight_on;
-  int velocityLeft_motor;
-  int velocityRight_motor;
-};
-
 void setup() {
   Serial.begin(115200);
 
@@ -74,7 +72,6 @@ void setup() {
   
   radio.setRetries(15,15);
 }
-
 
 void loop() {    
 
@@ -90,88 +87,142 @@ void loop() {
   m_type = char(Serial.read());
   
   //use ASCII 65-127 (7 bits) to send the type in the header;  user-defined
-  uint8_t node;
-  command_t content;
-  RF24NetworkHeader header;
+  uint8_t node;  
   switch(m_type){
-    case 'A': 
+    
+	/* Begining cases for the center ************************************************************/
+	/*
+					      W: goes forward					    1:increase velovity			3: pre programed movement
+	A:turns left	S (stops)  D:turns right		2:descrese velocity
+					      X:goes backward
+		
+	*/
+ 
+	case 'A': 
   		//Constructing the header
   		header.to_node = mesh.getAddress(CENTER);       //destination 
   		header.type = m_type;                           //type of message
   	  
   		Serial.println("Sending spin command to center...");       //debugging
-  		content.motorRight_on = true;
-  		content.motorLeft_on = false;
-  		content.velocityRight_motor = 0;
-  		content.velocityLeft_motor = 100;
+  		content.motorEnable = true;
+  		content.motorVelocity = velocity;
   		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
 		m_type = 0;
 		break;
   		//debugging
   		//Serial.println(mesh.addrList[0].nodeID);
   		//Serial.println(mesh.addrList[0].address);
-  			  
-  	case 'S':
+	
+    case 'D':
+	    header.to_node = mesh.getAddress(CENTER);       //destination 
+	    header.type = m_type;                           //type of message
+		
+	    Serial.println("Sending spin command to center...");       //debugging
+	    content.motorEnable = true;
+	    content.motorVelocity = velocity;
+	    while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
+	    m_type = 0;
+		break;
+
+	case 'W':
+        header.to_node = mesh.getAddress(CENTER);       //destination 
+        header.type = m_type;                           //type of message
+        
+        Serial.println("Sending go command to center...");       //debugging
+        content.motorEnable = true;
+  	    content.motorVelocity = velocity;
+        while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
+        m_type = 0;
+		break;
+
+	case 'X':
+        header.to_node = mesh.getAddress(CENTER);       //destination 
+        header.type = m_type;                           //type of message
+        
+        Serial.println("Sending go back command to center...");       //debugging
+        content.motorEnable = true;
+  	    content.motorVelocity = velocity;
+        while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
+        m_type = 0;
+		break;
+		
+	case 'S':
   		header.to_node = mesh.getAddress(CENTER);       //destination 
   		header.type = m_type;                           //type of message
   		  
   		Serial.println("Sending stop command to center...");       //debugging
-  		content.motorRight_on = false;
-  		content.motorLeft_on = false;
-  		content.velocityRight_motor = 0;
-  		content.velocityLeft_motor = 0;
+  		content.motorEnable = false;
+  		content.motorVelocity = 0;
   		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
   		m_type = 0;
 		break;
-
-    case 'D':
-      header.to_node = mesh.getAddress(CENTER);       //destination 
-      header.type = m_type;                           //type of message
-        
-      Serial.println("Sending spin command to center...");       //debugging
-      content.motorRight_on = false;
-      content.motorLeft_on = false;
-      content.velocityRight_motor = 0;
-      content.velocityLeft_motor = 0;
-      while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
-      m_type = 0;
-    break;
-
-    case 'W':
-      header.to_node = mesh.getAddress(CENTER);       //destination 
-      header.type = m_type;                           //type of message
-        
-      Serial.println("Sending go command to center...");       //debugging
-      content.motorRight_on = false;
-      content.motorLeft_on = false;
-      content.velocityRight_motor = 0;
-      content.velocityLeft_motor = 0;
-      while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
-      m_type = 0;
-    break;
-
-    case 'X':
-      header.to_node = mesh.getAddress(CENTER);       //destination 
-      header.type = m_type;                           //type of message
-        
-      Serial.println("Sending go back command to center...");       //debugging
-      content.motorRight_on = false;
-      content.motorLeft_on = false;
-      content.velocityRight_motor = 0;
-      content.velocityLeft_motor = 0;
-      while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed");}
-      m_type = 0;
-    break;
 		
+	case '1':
+		if ((velocity + 50) <= 255) {
+			velocity = velocity + 50;
+			Serial.print("Velocity power increased to:");
+			Serial.println(velocity);
+		}
+		break;
+		
+	case '2':
+		if ((velocity - 50) >= 0) {
+			velocity = velocity - 50;
+			Serial.print("Velocity power decrease to:");
+			Serial.println(velocity);
+		}
+		break;
+		
+	case '3':
+		Serial.println("Sending pre programed command");
+		header.to_node = mesh.getAddress(CENTER); 
+		header.type = 'W';
+		content.motorEnable = true;
+		content.motorVelocity = velocity;
+		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed 1");}
+		delay(1000);
+
+    header.to_node = mesh.getAddress(CENTER);
+		header.type = 'A';
+		content.motorEnable = true;
+		content.motorVelocity = velocity;
+		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed 2");}
+		delay(1000);
+    
+    header.to_node = mesh.getAddress(CENTER);
+		header.type = 'W';
+		content.motorEnable = false;
+		content.motorVelocity = velocity;
+		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed 3");}
+		delay(1000);
+
+    header.to_node = mesh.getAddress(CENTER);
+		header.type = 'D';
+		content.motorEnable = true;
+		content.motorVelocity = velocity;
+		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed 4");}
+		delay(1000);
+    
+    header.to_node = mesh.getAddress(CENTER);
+		header.type = 'S';
+		content.motorEnable = true;
+		content.motorVelocity = velocity;
+		while(!network.write(header, &content, sizeof(content))){Serial.println("Write Failed 5");}
+
+    m_type = 0;
+		break;
+		
+	/* Begining cases for the center ************************************************************/
+	
+	
+	/* Begining cases for the center_left *******************************************************/
   	case 'F':
   		header.to_node = mesh.getAddress(LEFT_CENTER);       //destination 
   		header.type = m_type;                           //type of message
   		 
   		Serial.println("Sending spin command to left center...");       //debugging
-  		content.motorRight_on = true;
-  		content.motorLeft_on = false;
-  		content.velocityRight_motor = 0;
-  		content.velocityLeft_motor = 100;
+  		content.motorEnable = true;
+  		content.motorVelocity = 200;
   		network.write(header, &content, sizeof(content));
   		m_type = 0;
 		break;
@@ -181,13 +232,14 @@ void loop() {
   		header.type = m_type;                           //type of message
   		  
   		Serial.println("Sending stop command to left center...");       //debugging
-  		content.motorRight_on = false;
-  		content.motorLeft_on = false;
-  		content.velocityRight_motor = 0;
-  		content.velocityLeft_motor = 0;
+  		content.motorEnable = false;
+  		content.motorVelocity = 0;
   		network.write(header, &content, sizeof(content));
   		m_type = 0;
 		break;
+	
+	
+		
 		
     default: 
 		break;
